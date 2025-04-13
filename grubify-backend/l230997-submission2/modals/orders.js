@@ -125,43 +125,18 @@ const User = {
         // 4. Get Customer Order History
         async getCustomerOrderHistory(userData) {
             try {
-                console.log("Received CustomerID:", userData.customerId); // Now lowercase
                 const pool = await poolPromise;
                 const result = await pool.request()
-                    .input("CustomerID", sql.Int, userData.customerId) // Use lowercase
+                    .input("CustomerID", sql.Int, userData.CustomerID)
                     .execute("GetCustomerOrderHistory");
+    
                 return { message: "Order history retrieved successfully", Orders: result.recordset };
             } catch (error) {
                 console.error("Database query failed:", error);
                 throw new Error("Failed to fetch order history");
             }
-        },async getCustomerOrderHistory(userData) {
-            try {
-          
-                if (!userData.CustomerID || isNaN(userData.CustomerID)) {
-                    throw new Error("Invalid CustomerID provided");
-                }
-        
-                const pool = await poolPromise;
-                const request = pool.request();
-                
-                request.input("CustomerID", sql.Int, userData.CustomerID);
-        
-                const result = await request.execute("GetCustomerOrderHistory");
-        
-        
-                return { 
-                    message: "Order history retrieved successfully",
-                    Orders: result.recordset 
-                };
-            } catch (error) {
-                console.error("Model Error:", {
-                    error: error.message,
-                    stack: error.stack
-                });
-                throw new Error(`Database operation failed: ${error.message}`);
-            }
         },
+    
         // 5. Add Ingredient Supply Record
         async addIngredientSupply(userData) {
             try {

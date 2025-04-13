@@ -69,32 +69,14 @@ const addWalletTransaction = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 const getCustomerOrderHistory = async (req, res) => {
     try {
         const { customerId } = req.params;
-  
-        const CustomerID = parseInt(customerId);
-        if (isNaN(CustomerID)) {
-            return res.status(400).json({ error: "Invalid Customer ID" });
-        }
-
- 
-        const result = await User.getCustomerOrderHistory({ CustomerID });
-
-        if (!result.Orders || result.Orders.length === 0) {
-            return res.status(404).json({ 
-                message: "No orders found for this customer",
-                Orders: []
-            });
-        }
-
+        const result = await User.getCustomerOrderHistory({ customerId });
         res.status(200).json(result);
     } catch (error) {
-        console.error("Controller Error:", error);
-        res.status(500).json({ 
-            error: "Internal server error",
-            details: error.message 
-        });
+        res.status(500).json({ error: error.message });
     }
 };
 
