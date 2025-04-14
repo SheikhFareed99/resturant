@@ -292,6 +292,20 @@ const updateEmployeeRole = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+const deductMoneyToWallet = async (req, res) => {
+    try {
+        const { customerId, amount } = req.body;
+
+        const result = await User.deductMoneyToWallet(customerId, amount);
+
+        res.status(201).json(result); 
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
+
 module.exports = {
     placeorder,
     feedback,
@@ -319,4 +333,6 @@ module.exports = {
     removeTable,
     updateTableCapacity,
     addMoneyToWallet,
-    updateEmployeeRole};
+    deductMoneyToWallet,
+    updateEmployeeRole
+};

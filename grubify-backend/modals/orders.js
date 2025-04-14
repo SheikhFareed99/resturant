@@ -445,35 +445,78 @@ const User = {
         }
     },
 
-    // Add Money to Wallet
+
+    async deductMoneyToWallet(CustomerID, Amount) {
+        try {
+            const pool = await poolPromise;
+            const request = pool.request();
+            
+            const result = await request
+                .input('CustomerID', sql.Int, CustomerID)
+                .input('Amount', sql.Decimal(18, 2), Amount)
+                .execute('sp_DeductFromWallet');
+            
+            const returnValue = result.returnValue;
+            
+            if (returnValue === -1) {
+                throw new Error('Insufficient balance or customer not found');
+            }
+            
+            return { message: 'Money deducted successfully' };
+        } catch (error) {
+            console.error('Database Error:', error);
+            throw error;
+        }
+    },
+    async deductMoneyToWallet(CustomerID, Amount) {
+        try {
+            if (!Amount || isNaN(Amount) || Amount <= 0) {
+                throw new Error('Amount must be a valid positive number');
+            }
+    
+            const pool = await poolPromise;
+            const result = await pool.request()
+                .input('CustomerID', sql.Int, CustomerID)
+                .input('Amount', sql.Decimal(18, 2), parseFloat(Amount))
+                .execute('sp_DeductFromWallet');
+    
+            const operationResult = result.recordset[0];
+    
+            if (!operationResult.Success) {
+                throw new Error(operationResult.Message);
+            }
+    
+            return operationResult;
+        } catch (error) {
+            console.error('Deduction Error:', error);
+            throw error;
+        }
+    },
     async addMoneyToWallet(CustomerID, Amount) {
         try {
             const pool = await poolPromise;
-            await pool.request()
-                .input("CustomerID", CustomerID)
-                .input("Amount", Amount)
-                .execute("sp_AddMoneyToWallet");
-
-            return { message: "Money added to wallet successfully" };
+            const request = pool.request();
+            
+           
+            const result = await request
+                .input('CustomerID', sql.Int, CustomerID)
+                .input('Amount', sql.Decimal(18, 2), Amount)
+                .execute('sp_AddMoneyToWallet');
+            
+           
+            const returnValue = result.returnValue;
+            
+            if (returnValue === -1) {
+                throw new Error('Customer does not exist');
+            }
+            
+            return { message: 'Money added successfully' };
         } catch (error) {
-            console.error("Database query failed:", error);
-            throw new Error("Failed to add money to wallet");
-        }
-    },
-    async  updateEmployeeRole(employeeData) {
-        try {
-            const pool = await poolPromise;
-            const result = await pool.request()
-                .input("EmployeeID", sql.Int, employeeData.EmployeeID)
-                .input("NewRole", sql.VarChar, employeeData.NewRole)
-                .execute("sp_UpdateEmployeeRole");
-    
-            return { message: "Employee role updated successfully", result: result.recordset };
-        } catch (error) {
-            console.error("Database query failed:", error);
-            throw new Error("Failed to update employee role");
+            console.error('Database Error:', error);
+            throw error;
         }
     }
+    
 };
 
 
