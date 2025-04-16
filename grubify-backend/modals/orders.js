@@ -1,13 +1,95 @@
 const { sql, poolPromise } = require("../db.js");
 
 const User = {
-   
+
+
+    async getAllIngredientNames() {
+        try {
+            const pool = await poolPromise;
+            
+            const result = await pool.request()
+                .execute("GetAllIngredientNames"); // Assuming you'll create this stored procedure
+            
+            return result.recordset;
+        } catch (error) {
+            console.error("Database query failed:", error);
+            throw new Error("Failed to fetch ingredient names");
+        }
+    },
+
+
+    async updateIngredients(orderData) {
+        try {
+            const pool = await poolPromise;
+            const { order, customer_id } = orderData;
+    
+            console.log("customer_id:", customer_id);
+    
+            if (!Number.isInteger(customer_id) || customer_id <= 0) {
+                throw new Error(`Invalid customer_id: ${customer_id}`);
+            }
+    
+            // Insert new order and get OrderID
+            const orderResult = await pool.request()
+                .input("CustomerID", sql.Int, customer_id)
+                .input("OrderType", sql.VarChar, "Delivery")
+                .input("OrderDate", sql.DateTime, new Date())
+                .input("OrderStatus", sql.VarChar, "Pending")
+                .input("Rating", sql.Int, null)
+                .input("Feedback", sql.VarChar, null)
+                .query(`
+                    INSERT INTO [Orders] (CustomerID, OrderType, OrderDate, OrderStatus, Rating, Feedback)
+                    OUTPUT INSERTED.OrderID
+                    VALUES (@CustomerID, @OrderType, @OrderDate, @OrderStatus, @Rating, @Feedback)
+                `);
+    
+            const OrderID = orderResult.recordset[0].OrderID;
+            console.log("Generated OrderID:", OrderID);
+    
+            if (!Number.isInteger(OrderID) || OrderID <= 0) {
+                throw new Error(`Invalid OrderID: ${OrderID}`);
+            }
+    
+            if (!Array.isArray(order) || order.length === 0) {
+                throw new Error("order must be a non-empty array");
+            }
+    
+            for (const item of order) {
+                const { item_id, quantity ,current_price} = item;
+    
+                if (!Number.isInteger(item_id) || item_id <= 0) {
+                    throw new Error(`Invalid item_id: ${item_id}`);
+                }
+                if (!Number.isInteger(quantity) || quantity <= 0) {
+                    throw new Error(`Invalid quantity for item_id ${item_id}: ${quantity}`);
+                }
+    
+                await pool.request()
+                    .input("OrderID", sql.Int, OrderID)
+                    .input("productid", sql.Int, item_id)
+                    .input("orderquantity", sql.Int, quantity)
+                    .input("current_price", sql.Int, current_price)
+                    .execute("UpdateInventoryOnOrder");
+            }
+    
+            return { message: "Order placed and ingredients updated successfully", OrderID };
+        } catch (error) {
+            console.error("Database query failed:", error);
+            if (error.message.includes("Insufficient stock")) {
+                throw new Error("Insufficient stock for one or more ingredients");
+            }
+            if (error.message.includes("CHECK constraint")) {
+                throw new Error("Update failed due to insufficient ingredient stock");
+            }
+            throw new Error(`Failed to update ingredients: ${error.message}`);
+        }
+    },
     async  placeorder(userData) {
         try {
             const pool = await poolPromise;
     
             const result = await pool.request()
-                .input("CustomerID", sql.Int, userData.CustomerID)
+                .input("customer_id", sql.Int, userData.customer_id)
                 .input("OrderType", sql.VarChar,  userData.OrderType) 
                 .input("OrderStatus", sql.VarChar,  userData.OrderStatus)
                 .execute("sp_PlaceOrder");
@@ -109,7 +191,7 @@ const User = {
             try {
                 const pool = await poolPromise;
                 const result = await pool.request()
-                    .input("CustomerID", sql.Int, userData.CustomerID)
+                    .input("customer_id", sql.Int, userData.customer_id)
                     .input("TransactionType", sql.VarChar, userData.TransactionType)
                     .input("Amount", sql.Int, userData.Amount)
                     .input("OrderID", sql.Int, userData.OrderID || null)
@@ -125,10 +207,10 @@ const User = {
         // 4. Get Customer Order History
         async getCustomerOrderHistory(userData) {
             try {
-                console.log("Received CustomerID:", userData.customerId); // Now lowercase
+                console.log("Received customer_id:", userData.customer_id); // Now lowercase
                 const pool = await poolPromise;
                 const result = await pool.request()
-                    .input("CustomerID", sql.Int, userData.customerId) // Use lowercase
+                    .input("customer_id", sql.Int, userData.customer_id) // Use lowercase
                     .execute("GetCustomerOrderHistory");
                 return { message: "Order history retrieved successfully", Orders: result.recordset };
             } catch (error) {
@@ -138,14 +220,14 @@ const User = {
         },async getCustomerOrderHistory(userData) {
             try {
           
-                if (!userData.CustomerID || isNaN(userData.CustomerID)) {
-                    throw new Error("Invalid CustomerID provided");
+                if (!userData.customer_id || isNaN(userData.customer_id)) {
+                    throw new Error("Invalid customer_id provided");
                 }
         
                 const pool = await poolPromise;
                 const request = pool.request();
                 
-                request.input("CustomerID", sql.Int, userData.CustomerID);
+                request.input("customer_id", sql.Int, userData.customer_id);
         
                 const result = await request.execute("GetCustomerOrderHistory");
         
@@ -199,6 +281,7 @@ const User = {
         async addproduct(userData) {
             try {
                 const pool = await poolPromise;
+                console.log(userData);
                 const result = await pool.request()
                     .input("ItemDescription", sql.VarChar(500), userData.ItemDescription)
                     .input("Quantity", sql.Int, userData.Quantity)
@@ -217,7 +300,30 @@ const User = {
                 throw new Error("Failed to add new product");
             }
         },
-
+        async addRecipeItems(productID, recipeItems) {
+            try {
+                const pool = await poolPromise;
+        
+                for (const item of recipeItems) {
+                    const { IngredientID, Quantity } = item;
+            
+                    await pool.request()
+                        .input("ProductID", sql.Int, productID)
+                        .input("IngredientID", sql.Int, IngredientID)
+                        .input("Quantity", sql.Int, Quantity)
+                        .query(`
+                            INSERT INTO Recipes (ProductID, IngredientID, Quantity)
+                            VALUES (@ProductID, @IngredientID, @Quantity)
+                        `);
+                }
+        
+                return { message: "Recipe added successfully for product ID: " + productID };
+            } catch (error) {
+                console.error("Database query failed while adding recipe:", error);
+                throw new Error("Failed to add recipe");
+            }
+        },
+        
         async updatesalary(userData) {
             try {
                 const pool = await poolPromise;
@@ -446,13 +552,13 @@ const User = {
     },
 
 
-    async deductMoneyToWallet(CustomerID, Amount) {
+    async deductMoneyToWallet(customer_id, Amount) {
         try {
             const pool = await poolPromise;
             const request = pool.request();
             
             const result = await request
-                .input('CustomerID', sql.Int, CustomerID)
+                .input('customer_id', sql.Int, customer_id)
                 .input('Amount', sql.Decimal(18, 2), Amount)
                 .execute('sp_DeductFromWallet');
             
@@ -468,7 +574,7 @@ const User = {
             throw error;
         }
     },
-    async deductMoneyToWallet(CustomerID, Amount) {
+    async deductMoneyToWallet(customer_id, Amount) {
         try {
             if (!Amount || isNaN(Amount) || Amount <= 0) {
                 throw new Error('Amount must be a valid positive number');
@@ -476,7 +582,7 @@ const User = {
     
             const pool = await poolPromise;
             const result = await pool.request()
-                .input('CustomerID', sql.Int, CustomerID)
+                .input('customer_id', sql.Int, customer_id)
                 .input('Amount', sql.Decimal(18, 2), parseFloat(Amount))
                 .execute('sp_DeductFromWallet');
     
@@ -492,14 +598,14 @@ const User = {
             throw error;
         }
     },
-    async addMoneyToWallet(CustomerID, Amount) {
+    async addMoneyToWallet(customer_id, Amount) {
         try {
             const pool = await poolPromise;
             const request = pool.request();
             
            
             const result = await request
-                .input('CustomerID', sql.Int, CustomerID)
+                .input('customer_id', sql.Int, customer_id)
                 .input('Amount', sql.Decimal(18, 2), Amount)
                 .execute('sp_AddMoneyToWallet');
             

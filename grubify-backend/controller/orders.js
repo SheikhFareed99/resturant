@@ -1,5 +1,26 @@
 const User = require("../modals/orders.js");
 
+const getAllIngredientNames = async (req, res) => {
+    try {
+        const ingredients = await User.getAllIngredientNames();
+        res.status(200).json(ingredients);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+const updateIngredients = async (req, res) => {
+    try {
+        const orderData = req.body;
+        console.log("New Order Received from Customer:", orderData.customer_id);
+        console.log("Order Details hehe:", orderData.order);
+        const result = await User.updateIngredients(orderData);
+        res.status(201).json(result);
+
+    } catch (error) {
+        console.error("Controller error:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
 const placeorder = async (req, res) => {
     try {
         const userData = req.body;
@@ -121,8 +142,23 @@ const DailySalesReport = async (req, res) => {
 const addproduct = async (req, res) => {
     try {
         const userData = req.body;
-        const result = await User.addproduct(userData);
-        res.status(201).json(result);
+        const result = await User.addproduct(userData); // This returns product ID
+        const productID = result.result[0].NewProductID;
+         console.log("result is ",result);
+         console.log(productID);
+        if (!productID) {
+            throw new Error("Product ID not returned after insertion");
+        }
+
+        const { Recipe } = userData; // Recipe: [{ ingredient_id, quantity }, ...]
+
+        if (!Array.isArray(Recipe) || Recipe.length === 0) {
+            throw new Error("Recipe data missing or invalid");
+        }
+
+        await User.addRecipeItems(productID, Recipe);
+
+        res.status(201).json({ message: "Product and Recipe added successfully", productID });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -307,6 +343,8 @@ const deductMoneyToWallet = async (req, res) => {
 
 
 module.exports = {
+    getAllIngredientNames,
+    updateIngredients,
     placeorder,
     feedback,
     addorderitem,

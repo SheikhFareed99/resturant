@@ -1,5 +1,7 @@
 const express = require("express");
 const { 
+    getAllIngredientNames,
+    updateIngredients,
     placeorder,
     feedback,
     addorderitem,
@@ -32,6 +34,7 @@ const {
 
 const router = express.Router();
 
+router.get("/getAllIngredientNames", getAllIngredientNames); 
 router.post("/placeorder", placeorder);  
 router.post("/feedback", feedback);  
 router.post("/addorderitem", addorderitem);  
@@ -60,6 +63,7 @@ router.put("/updatetablecapacity", updateTableCapacity);
 router.post("/addmoneytowallet", addMoneyToWallet);
 router.post("/deductmoneytowallet", deductMoneyToWallet);
 router.put("/updateemployeerole", updateEmployeeRole);
+router.post("/updateIngredients", updateIngredients);
 
 
 module.exports = router;

@@ -34,16 +34,27 @@ app.use('/api/v2',ordersRoutes)
     });
 
 
-
-app.post("/order", (req, res) => {
-  const { order } = req.body;
-  if (!order || order.length === 0) {
-    return res.status(400).json({ message: "Order cannot be empty" });
-  }
-
-  console.log("New Order Received:", order);
-  res.status(201).json({ message: "Order placed successfully", order });
-});
+    app.post("/order", (req, res) => {
+      const { customer_id, order } = req.body;
+    
+      if (!customer_id) {
+        return res.status(400).json({ message: "Customer ID is required" });
+      }
+    
+      if (!order || order.length === 0) {
+        return res.status(400).json({ message: "Order cannot be empty" });
+      }
+    
+      console.log("New Order Received from Customer:", customer_id);
+      console.log("Order Details:", order);
+    
+      res.status(201).json({
+        message: "Order placed successfully",
+        customer_id,
+        order
+      });
+    });
+    
 
 
 app.get("/", (req, res) => {
