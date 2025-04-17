@@ -7,20 +7,22 @@ const User = {
         try {
             const pool = await poolPromise;
     
-            // Convert password string to VARBINARY format
+          console.log("User Data:", userData);
             const passwordBuffer = Buffer.from(userData.PasswordHash, "utf8");
     
             const result = await pool.request()
-                .input("Email", sql.VarChar, userData.Email)
-                .input("PasswordHash", sql.VarBinary, passwordBuffer) 
-                .output("LoginSuccess", sql.Bit)
-                .execute("sp_AuthenticateUser");
+    .input("Email", sql.VarChar, userData.Email)
+    .input("PasswordHash", sql.VarBinary, passwordBuffer) 
+    .output("LoginSuccess", sql.Int) // <== change here!
+    .execute("sp_AuthenticateUser");
+
     
-      
+               
             const isAuthenticated = result.output.LoginSuccess;
-    
-            if (isAuthenticated) {
-                return { message: "User login successfully" };
+            console.log("User authenticated successfully:", isAuthenticated);
+            if (isAuthenticated>0) {
+                console.log("User authenticated successfully:", isAuthenticated);
+                return { message:isAuthenticated  };// isAuthenticated is customer id 
             } else {
                 return { message: "Invalid Email or Password" };
             }
