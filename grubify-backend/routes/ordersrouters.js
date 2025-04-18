@@ -29,7 +29,8 @@ const {
     updateTableCapacity,
     addMoneyToWallet,
     updateEmployeeRole,
-    deductMoneyToWallet
+    deductMoneyToWallet,
+    checkIfTableAvailable
 } = require("../controller/orders.js"); 
 
 const router = express.Router();
@@ -64,6 +65,6 @@ router.post("/addmoneytowallet", addMoneyToWallet);
 router.post("/deductmoneytowallet", deductMoneyToWallet);
 router.put("/updateemployeerole", updateEmployeeRole);
 router.post("/updateIngredients", updateIngredients);
-
+router.get("/checkTableAvailable", checkIfTableAvailable); 
 
 module.exports = router;

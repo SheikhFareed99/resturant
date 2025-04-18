@@ -13,9 +13,10 @@ const updateIngredients = async (req, res) => {
         const orderData = req.body;
         console.log("New Order Received from Customer:", orderData.customer_id);
         console.log("Order Details hehe:", orderData.order);
+        console.log("Order Details hehe:", orderData.order_type);
         const result = await User.updateIngredients(orderData);
         res.status(201).json(result);
-
+          
     } catch (error) {
         console.error("Controller error:", error);
         res.status(500).json({ error: error.message });
@@ -330,13 +331,23 @@ const updateEmployeeRole = async (req, res) => {
 };
 const deductMoneyToWallet = async (req, res) => {
     try {
-        const { customerId, amount } = req.body;
 
+        const { customerId, amount } = req.body;
+ 
         const result = await User.deductMoneyToWallet(customerId, amount);
 
         res.status(201).json(result); 
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+
+const checkIfTableAvailable = async (req, res) => {
+    try {
+        const result = await User.checkIfTableAvailable();
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ error: 'Server error', details: error.message });
     }
 };
 
@@ -372,5 +383,6 @@ module.exports = {
     updateTableCapacity,
     addMoneyToWallet,
     deductMoneyToWallet,
-    updateEmployeeRole
+    updateEmployeeRole,
+    checkIfTableAvailable
 };

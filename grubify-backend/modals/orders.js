@@ -21,17 +21,18 @@ const User = {
     async updateIngredients(orderData) {
         try {
             const pool = await poolPromise;
-            const { order, customer_id } = orderData;
-    
+            const { order, customer_id,order_type } = orderData;
+      
             console.log("customer_id:", customer_id);
-    
-            if (!Number.isInteger(customer_id) || customer_id <= 0) {
-                throw new Error(`Invalid customer_id: ${customer_id}`);
+            const customer_idd= parseInt(customer_id);
+           console.log(typeof customer_idd);
+            if (!Number.isInteger(customer_idd) || customer_idd <= 0) {
+                throw new Error(`Invalid customer_id: ${customer_idd}`);
             }
     
             // Insert new order and get OrderID
             const orderResult = await pool.request()
-                .input("CustomerID", sql.Int, customer_id)
+                .input("CustomerID", sql.Int, customer_idd)
                 .input("OrderType", sql.VarChar, "Delivery")
                 .input("OrderDate", sql.DateTime, new Date())
                 .input("OrderStatus", sql.VarChar, "Pending")
@@ -71,8 +72,25 @@ const User = {
                     .input("current_price", sql.Int, current_price)
                     .execute("UpdateInventoryOnOrder");
             }
+
+               
+
+            if (order_type.toLowerCase() === "dine-in") {
+                const tableRes = await pool.request()
+                    .input("OrderID", sql.Int, OrderID)
+                    .execute("sp_ReserveAvailableTable");
+            
+                const reservationResult = tableRes.recordset[0];
+            
+                if (!reservationResult || reservationResult.Message !== 'Table reserved successfully') {
+                    throw new Error("Table reservation failed after placing order.");
+                }
+            
+                console.log("Reserved Table ID:", reservationResult.TableID);
+            }
+            
     
-            return { message: "Order placed and ingredients updated successfully", OrderID };
+            return { message: "Order placed and ingredients updated  successfully", OrderID };
         } catch (error) {
             console.error("Database query failed:", error);
             if (error.message.includes("Insufficient stock")) {
@@ -227,7 +245,7 @@ const User = {
                 const pool = await poolPromise;
                 const request = pool.request();
                 
-                request.input("customer_id", sql.Int, userData.customer_id);
+                request.input("CustomerID", sql.Int, userData.customer_id);
         
                 const result = await request.execute("GetCustomerOrderHistory");
         
@@ -552,37 +570,18 @@ const User = {
     },
 
 
+
     async deductMoneyToWallet(customer_id, Amount) {
         try {
-            const pool = await poolPromise;
-            const request = pool.request();
-            
-            const result = await request
-                .input('customer_id', sql.Int, customer_id)
-                .input('Amount', sql.Decimal(18, 2), Amount)
-                .execute('sp_DeductFromWallet');
-            
-            const returnValue = result.returnValue;
-            
-            if (returnValue === -1) {
-                throw new Error('Insufficient balance or customer not found');
-            }
-            
-            return { message: 'Money deducted successfully' };
-        } catch (error) {
-            console.error('Database Error:', error);
-            throw error;
-        }
-    },
-    async deductMoneyToWallet(customer_id, Amount) {
-        try {
+            console.log("customer_id:", customer_id);
+            console.log(typeof customer_id);
             if (!Amount || isNaN(Amount) || Amount <= 0) {
                 throw new Error('Amount must be a valid positive number');
             }
     
             const pool = await poolPromise;
             const result = await pool.request()
-                .input('customer_id', sql.Int, customer_id)
+                .input('CustomerID', sql.Int, customer_id)
                 .input('Amount', sql.Decimal(18, 2), parseFloat(Amount))
                 .execute('sp_DeductFromWallet');
     
@@ -605,7 +604,7 @@ const User = {
             
            
             const result = await request
-                .input('customer_id', sql.Int, customer_id)
+                .input('CustomerID', sql.Int, customer_id)
                 .input('Amount', sql.Decimal(18, 2), Amount)
                 .execute('sp_AddMoneyToWallet');
             
@@ -621,7 +620,27 @@ const User = {
             console.error('Database Error:', error);
             throw error;
         }
+    },
+    async checkIfTableAvailable() {
+        try {
+            const pool = await poolPromise;
+            const request = pool.request();
+            const result = await request.query(`
+                SELECT TOP 1 TableID 
+                FROM Tables 
+                WHERE IsAvailable = 1
+            `);
+            if (result.recordset.length > 0) {
+                return { available: true, tableID: result.recordset[0].TableID };
+            } else {
+                return { available: false };
+            }
+        } catch (error) {
+            console.error('Database Error:', error);
+            throw error;
+        }
     }
+
     
 };
 
