@@ -21,7 +21,7 @@ const User = {
     async updateIngredients(orderData) {
         try {
             const pool = await poolPromise;
-            const { order, customer_id,order_type } = orderData;
+            const { order, customer_id,order_type ,PaymentMethod} = orderData;
       
             console.log("customer_id:", customer_id);
             const customer_idd= parseInt(customer_id);
@@ -33,7 +33,7 @@ const User = {
             // Insert new order and get OrderID
             const orderResult = await pool.request()
                 .input("CustomerID", sql.Int, customer_idd)
-                .input("OrderType", sql.VarChar, "Delivery")
+                .input("OrderType", sql.VarChar,order_type)
                 .input("OrderDate", sql.DateTime, new Date())
                 .input("OrderStatus", sql.VarChar, "Pending")
                 .input("Rating", sql.Int, null)
@@ -54,10 +54,11 @@ const User = {
             if (!Array.isArray(order) || order.length === 0) {
                 throw new Error("order must be a non-empty array");
             }
+            let TotalAmount=99;
     
             for (const item of order) {
                 const { item_id, quantity ,current_price} = item;
-    
+                TotalAmount+=current_price*quantity;
                 if (!Number.isInteger(item_id) || item_id <= 0) {
                     throw new Error(`Invalid item_id: ${item_id}`);
                 }
@@ -73,9 +74,13 @@ const User = {
                     .execute("UpdateInventoryOnOrder");
             }
 
-               
+               let Tax = 16;
+               if(PaymentMethod==="card"){
+                Tax = 5;
+            }
 
             if (order_type.toLowerCase() === "dine-in") {
+                TotalAmount-=99;
                 const tableRes = await pool.request()
                     .input("OrderID", sql.Int, OrderID)
                     .execute("sp_ReserveAvailableTable");
@@ -89,6 +94,17 @@ const User = {
                 console.log("Reserved Table ID:", reservationResult.TableID);
             }
             
+            const invoiceResult = await pool.request()
+    .input("OrderID", sql.Int, OrderID)
+    .input("TotalAmount", sql.Int, TotalAmount)
+    .input("Tax", sql.Int, Tax) 
+    .input("DiscountApplied", sql.Int, 0) 
+    .input("PaidStatus", sql.VarChar, "paid")
+    .input("PaymentMethod", sql.VarChar, PaymentMethod)
+    .execute("GenerateInvoice");
+
+const invoiceID = invoiceResult.recordset[0].NewInvoiceID;
+console.log("Invoice created with ID:", invoiceID);
     
             return { message: "Order placed and ingredients updated  successfully", OrderID };
         } catch (error) {

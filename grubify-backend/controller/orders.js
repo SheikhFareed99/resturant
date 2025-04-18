@@ -14,6 +14,7 @@ const updateIngredients = async (req, res) => {
         console.log("New Order Received from Customer:", orderData.customer_id);
         console.log("Order Details hehe:", orderData.order);
         console.log("Order Details hehe:", orderData.order_type);
+        console.log("Order Details hehe:", orderData.PaymentMethod);
         const result = await User.updateIngredients(orderData);
         res.status(201).json(result);
           
