@@ -1,4 +1,5 @@
 const User = require("../modals/orders.js");
+const { get } = require("../routes/ordersrouters.js");
 
 const getAllIngredientNames = async (req, res) => {
     try {
@@ -94,15 +95,17 @@ const addWalletTransaction = async (req, res) => {
 };
 const getCustomerOrderHistory = async (req, res) => {
     try {
-        const { customerId } = req.params;
-  
-        const CustomerID = parseInt(customerId);
-        if (isNaN(CustomerID)) {
+        let { customerId } = req.params;
+        console.log("Customer ID (raw):", customerId);
+
+        customerId = parseInt(customerId); // Convert string to int
+        console.log("Parsed Customer ID:", customerId);
+
+        if (isNaN(customerId)) {
             return res.status(400).json({ error: "Invalid Customer ID" });
         }
 
- 
-        const result = await User.getCustomerOrderHistory({ CustomerID });
+        const result = await User.getCustomerOrderHistory({ customer_id: customerId });
 
         if (!result.Orders || result.Orders.length === 0) {
             return res.status(404).json({ 
@@ -229,7 +232,7 @@ const dailyOrderDetails = async (req, res) => {
     }
 };
 
-// 18. Get Top Selling Products
+
 const topSellingProducts = async (req, res) => {
     try {
         const result = await User.topSellingProducts();
@@ -239,7 +242,6 @@ const topSellingProducts = async (req, res) => {
     }
 };
 
-// 19. Get Menu
 const getMenu = async (req, res) => {
     try {
         const result = await User.getMenu();
@@ -248,7 +250,7 @@ const getMenu = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-// Add Employee
+
 const addemployee = async (req, res) => {
     try {
         const employeeData = req.body;
@@ -259,7 +261,7 @@ const addemployee = async (req, res) => {
     }
 };
 
-// Add Menu Item
+
 const addmenuitem = async (req, res) => {
     try {
         const menuData = req.body;
@@ -351,8 +353,175 @@ const checkIfTableAvailable = async (req, res) => {
         res.status(500).json({ error: 'Server error', details: error.message });
     }
 };
+const viewActiveOrders = async (req, res) => {
+    try {
+        const result = await User.viewActiveOrders();
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
+const addingredient = async (req, res) => {
+    try {
+        const ingredientData = req.body;
+        const result = await User.addingredient(ingredientData);
+        res.status(201).json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
+const getAllEmployees = async (req, res) => {
+    try {
+       
+        const result = await User.getAllEmployees();
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Controller Error:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            details: error.message
+        });
+    }
+};
+
+const removeEmployee= async (req, res) =>{
+    const { id } = req.params;
+  
+    try {
+      await  User.removeEmployeeByID(id);
+      res.status(200).json({ message: 'Employee removed successfully' });
+    } catch (err) {
+      console.error('Error removing employee:', err);
+      res.status(500).json({ message: 'Failed to remove employee' });
+    }
+  };
+
+  const getOrdersByDateRange = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        
+        if (!startDate || !endDate) {
+            return res.status(400).json({ 
+                error: 'Both startDate and endDate parameters are required' 
+            });
+        }
+
+        const orders = await User.getOrdersByDateRange(startDate, endDate);
+        res.status(200).json(orders);
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch orders',
+            details: error.message 
+        });
+    }
+};
+
+const getSalesReport = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        
+        if (!startDate || !endDate) {
+            return res.status(400).json({ 
+                error: 'Both startDate and endDate parameters are required' 
+            });
+        }
+
+        const report = await User.getSalesReport(startDate, endDate);
+        res.status(200).json(report);
+    } catch (error) {
+        console.error('Error fetching sales report:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch sales report',
+            details: error.message 
+        });
+    }
+};
+const generateMonthlyReport = async (req, res) => {
+    try {
+        const { year, month, electricityBill, maintenanceBill, salariesPaid } = req.body;
+        
+        if (!year || !month) {
+            return res.status(400).json({ 
+                error: 'Year and month are required' 
+            });
+        }
+
+        const reportData = await  User.getMonthlyReport(year, month);
+        
+     
+        const totalExpenses = Number(reportData.ingredientCost) + 
+                             Number(salariesPaid || 0) + 
+                             Number(electricityBill || 0) + 
+                             Number(maintenanceBill || 0);
+        
+        const netProfit = Number(reportData.totalSales) - totalExpenses;
+        
+        res.status(200).json({
+            ...reportData,
+            electricityBill: electricityBill || 0,
+            maintenanceBill: maintenanceBill || 0,
+            salariesPaid: salariesPaid || 0, 
+            totalExpenses: totalExpenses,
+            netProfit: netProfit
+        });
+    } catch (error) {
+        console.error('Error generating financial report:', error);
+        res.status(500).json({ 
+            error: 'Failed to generate financial report',
+            details: error.message 
+        });
+    }
+};
+
+const getAllVendors = async (req, res) => {
+    try {
+        const vendors = await User.getAllVendors();
+        res.status(200).json(vendors);
+    } catch (error) {
+        console.error('Error fetching vendors:', error);
+        res.status(500).json({ error: 'Failed to fetch vendors' });
+    }
+};
+
+const addVendor = async (req, res) => {
+    try {
+        const vendorData = req.body;
+        
+        
+        if (!vendorData.FName || !vendorData.LName || !vendorData.CNIC || 
+            !vendorData.Address || !vendorData.PhoneNo || !vendorData.Email) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        const newVendor = await User.addVendor(vendorData);
+        res.status(201).json({ 
+            message: 'Vendor added successfully',
+            vendor: newVendor 
+        });
+    } catch (error) {
+        console.error('Error adding vendor:', error);
+        res.status(500).json({ error: 'Failed to add vendor' });
+    }
+};
+
+const removeVendor = async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+        
+        if (!vendorId) {
+            return res.status(400).json({ error: 'Vendor ID is required' });
+        }
+
+        await User.removeVendor(vendorId);
+        res.status(200).json({ message: 'Vendor removed successfully' });
+    } catch (error) {
+        console.error('Error removing vendor:', error);
+        res.status(500).json({ error: 'Failed to remove vendor' });
+    }
+};
 
 module.exports = {
     getAllIngredientNames,
@@ -385,5 +554,15 @@ module.exports = {
     addMoneyToWallet,
     deductMoneyToWallet,
     updateEmployeeRole,
-    checkIfTableAvailable
+    checkIfTableAvailable,
+    viewActiveOrders,
+    addingredient,
+    getAllEmployees,
+    removeEmployee,
+    getOrdersByDateRange,
+    getSalesReport,
+    generateMonthlyReport,
+    getAllVendors,
+    addVendor,
+    removeVendor
 };

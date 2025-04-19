@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/v1/register", registerRoutes);
-app.use('/api/v1/login',userRoutes)
+app.use('/api/v1',userRoutes)
 app.use('/api/v2',ordersRoutes)
 
 

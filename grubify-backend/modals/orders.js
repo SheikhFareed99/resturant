@@ -8,8 +8,7 @@ const User = {
             const pool = await poolPromise;
             
             const result = await pool.request()
-                .execute("GetAllIngredientNames"); // Assuming you'll create this stored procedure
-            
+                .execute("GetAllIngredientNames"); 
             return result.recordset;
         } catch (error) {
             console.error("Database query failed:", error);
@@ -30,7 +29,7 @@ const User = {
                 throw new Error(`Invalid customer_id: ${customer_idd}`);
             }
     
-            // Insert new order and get OrderID
+         
             const orderResult = await pool.request()
                 .input("CustomerID", sql.Int, customer_idd)
                 .input("OrderType", sql.VarChar,order_type)
@@ -183,7 +182,7 @@ console.log("Invoice created with ID:", invoiceID);
         }
     },
   
-        // 1. Generate Invoice
+  
         async generateInvoice(userData) {
             try {
                 const pool = await poolPromise;
@@ -203,7 +202,7 @@ console.log("Invoice created with ID:", invoiceID);
             }
         },
     
-        // 2. Reserve Table
+  
         async reserveTable(userData) {
             try {
                 const pool = await poolPromise;
@@ -220,7 +219,7 @@ console.log("Invoice created with ID:", invoiceID);
             }
         },
     
-        // 3. Wallet Transaction
+   
         async addWalletTransaction(userData) {
             try {
                 const pool = await poolPromise;
@@ -237,48 +236,32 @@ console.log("Invoice created with ID:", invoiceID);
                 throw new Error("Wallet transaction failed");
             }
         },
-    
-        // 4. Get Customer Order History
+  
         async getCustomerOrderHistory(userData) {
             try {
-                console.log("Received customer_id:", userData.customer_id); // Now lowercase
-                const pool = await poolPromise;
-                const result = await pool.request()
-                    .input("customer_id", sql.Int, userData.customer_id) // Use lowercase
-                    .execute("GetCustomerOrderHistory");
-                return { message: "Order history retrieved successfully", Orders: result.recordset };
-            } catch (error) {
-                console.error("Database query failed:", error);
-                throw new Error("Failed to fetch order history");
-            }
-        },async getCustomerOrderHistory(userData) {
-            try {
-          
-                if (!userData.customer_id || isNaN(userData.customer_id)) {
+                const customer_id = parseInt(userData.customer_id);
+                if (isNaN(customer_id)) {
                     throw new Error("Invalid customer_id provided");
                 }
+           console.log("Received customer_id:", customer_id);
+                console.log("Received customer_id:", customer_id);
         
                 const pool = await poolPromise;
-                const request = pool.request();
-                
-                request.input("CustomerID", sql.Int, userData.customer_id);
+                const result = await pool.request()
+                    .input("CustomerID", sql.Int, customer_id)
+                    .execute("GetCustomerOrderHistory");
         
-                const result = await request.execute("GetCustomerOrderHistory");
-        
-        
-                return { 
+                return {
                     message: "Order history retrieved successfully",
-                    Orders: result.recordset 
+                    Orders: result.recordset
                 };
             } catch (error) {
-                console.error("Model Error:", {
-                    error: error.message,
-                    stack: error.stack
-                });
-                throw new Error(`Database operation failed: ${error.message}`);
+                console.error("Database query failed:", error);
+                throw new Error("Database operation failed: " + error.message);
             }
         },
-        // 5. Add Ingredient Supply Record
+        
+        
         async addIngredientSupply(userData) {
             try {
                 const pool = await poolPromise;
@@ -297,7 +280,7 @@ console.log("Invoice created with ID:", invoiceID);
             }
         },
     
-        // 6. Get Daily Sales Report
+    
         async DailySalesReport(userData) {
             try {
                 const pool = await poolPromise;
@@ -305,7 +288,7 @@ console.log("Invoice created with ID:", invoiceID);
                     .input("OrderDate", sql.Date, userData.OrderDate)
                     .query("SELECT * FROM DailySalesReport WHERE OrderDate = @OrderDate");
     
-                return { message: "Daily sales report retrieved successfully", Report: result.recordset };
+                return { message: "", Report: result.recordset };
             } catch (error) {
                 console.error("Database query failed:", error);
                 throw new Error("Failed to fetch daily sales report");
@@ -419,7 +402,7 @@ console.log("Invoice created with ID:", invoiceID);
         async ingredientInventory() {
             try {
                 const pool = await poolPromise;
-                const result = await pool.request().query("SELECT * FROM IngredientInventory");
+            const result = await pool.request().execute("GetIngredientInventory");
     
                 return { message: "Ingredient inventory retrieved successfully", Inventory: result.recordset };
             } catch (error) {
@@ -474,7 +457,7 @@ console.log("Invoice created with ID:", invoiceID);
             }
         },
         
-         // Add Employee
+ 
     async addemployee(employeeData) {
         try {
             const pool = await poolPromise;
@@ -500,7 +483,6 @@ console.log("Invoice created with ID:", invoiceID);
         }
     },
 
-    // Add Menu Item
     async addmenuitem(menuData) {
         try {
             const pool = await poolPromise;
@@ -523,7 +505,7 @@ console.log("Invoice created with ID:", invoiceID);
         }
     },
 
-    // Remove Menu Item
+
     async removeMenuItem(ProductID) {
         try {
             const pool = await poolPromise;
@@ -538,7 +520,7 @@ console.log("Invoice created with ID:", invoiceID);
         }
     },
 
-    // Add Table
+
     async addtable(Capacity, IsAvailable = 1) {
         try {
             const pool = await poolPromise;
@@ -554,7 +536,6 @@ console.log("Invoice created with ID:", invoiceID);
         }
     },
 
-    // Remove Table
     async removeTable(TableID) {
         try {
             const pool = await poolPromise;
@@ -569,7 +550,6 @@ console.log("Invoice created with ID:", invoiceID);
         }
     },
 
-    // Update Table Capacity
     async updateTableCapacity(TableID, NewCapacity) {
         try {
             const pool = await poolPromise;
@@ -655,7 +635,225 @@ console.log("Invoice created with ID:", invoiceID);
             console.error('Database Error:', error);
             throw error;
         }
+    },
+    async viewActiveOrders() {
+        try {
+            const pool = await poolPromise;
+            const result = await pool.request().execute("sp_ViewActiveOrders");
+    
+            return { 
+                message: "Active orders retrieved successfully", 
+                orders: result.recordset 
+            };
+        } catch (error) {
+            console.error("Database query failed:", error);
+            throw new Error("Failed to fetch active orders");
+        }
+    },
+    async addingredient(ingredientData) {
+        try {
+            const pool = await poolPromise;
+            const result = await pool.request()
+                .input("IngredientName", sql.VarChar(255), ingredientData.IngredientName)
+                .input("RemainingStock", sql.Int, ingredientData.RemainingStock)
+                .input("Unit", sql.VarChar(255), ingredientData.Unit)
+                .input("ExpiryDate", sql.Date, ingredientData.ExpiryDate)
+                .input("VendorID", sql.Int, ingredientData.VendorID || null)
+                .input("Type", sql.VarChar(10), ingredientData.Type)
+                .input("LowStockAlert", sql.Bit, ingredientData.LowStockAlert)
+                .execute("AddIngredient");
+    
+            return { message: "Ingredient added successfully", result: result.recordset };
+        } catch (error) {
+            console.error("Database query failed:", error);
+            throw new Error("Failed to add new ingredient");
+        }
+    },
+    
+    async getAllEmployees() {
+        try {
+            const pool = await poolPromise;
+            const result = await pool.request().execute('GetAllEmployees');
+            return {
+                message: 'Employees retrieved successfully',
+                employees: result.recordset
+            };
+        } catch (error) {
+            console.error('Modal Error:', error);
+            throw new Error('Failed to fetch employees');
+        }
+    },
+    async  removeEmployeeByID(id) {
+        const pool = await poolPromise;
+        await pool.request()
+          .input('EmployeeID', sql.Int, id)
+          .execute('RemoveEmployeeByID');
+    },
+    async getOrdersByDateRange(startDate, endDate) {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('StartDate', sql.DateTime, startDate)
+            .input('EndDate', sql.DateTime, endDate)
+            .query(`
+                SELECT 
+                    o.OrderID,
+                    o.CustomerID,
+                    o.OrderType,
+                    o.OrderDate,
+                    o.OrderStatus,
+                    o.Rating,
+                    o.Feedback
+                FROM Orders o
+                LEFT JOIN Customer c ON o.CustomerID = c.CustomerID
+                WHERE o.OrderDate BETWEEN @StartDate AND @EndDate
+                ORDER BY o.OrderDate DESC
+            `);
+        return result.recordset;
+    },
+    async getSalesReport(startDate, endDate) {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('StartDate', sql.DateTime, startDate)
+            .input('EndDate', sql.DateTime, endDate)
+            .query(`
+                SELECT 
+                    o.OrderID,
+                    o.OrderDate,
+                    o.OrderType,
+                    i.InvoiceID,
+                    i.TotalAmount,
+                    i.Tax,
+                    i.DiscountApplied,
+                    i.PaymentMethod,
+                    i.PaidStatus,
+                    (i.TotalAmount - i.DiscountApplied) AS NetAmount,
+                    ((i.TotalAmount - i.DiscountApplied) * i.Tax / 100) AS TaxAmount,
+                    (i.TotalAmount - i.DiscountApplied + ((i.TotalAmount - i.DiscountApplied) * i.Tax / 100)) AS GrandTotal
+                FROM Orders o
+                JOIN Invoice i ON o.OrderID = i.OrderID
+                LEFT JOIN Customer c ON o.CustomerID = c.CustomerID
+                WHERE o.OrderDate BETWEEN @StartDate AND @EndDate
+                ORDER BY o.OrderDate DESC
+            `);
+        
+      
+        const summary = {
+            totalSales: 0,
+            totalDiscount: 0,
+            totalTax: 0,
+            grandTotal: 0,
+            paymentMethods: {},
+            orderTypes: {}
+        };
+
+        result.recordset.forEach(sale => {
+            summary.totalSales += sale.TotalAmount;
+            summary.totalDiscount += sale.DiscountApplied;
+            summary.totalTax += sale.TaxAmount;
+            summary.grandTotal += sale.GrandTotal;
+            
+            summary.paymentMethods[sale.PaymentMethod] = 
+                (summary.paymentMethods[sale.PaymentMethod] || 0) + 1;
+                
+       
+            summary.orderTypes[sale.OrderType] = 
+                (summary.orderTypes[sale.OrderType] || 0) + 1;
+        });
+
+        return {
+            sales: result.recordset,
+            summary
+        };
+    },
+    async getMonthlyReport(year, month) {
+        const pool = await poolPromise;
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+        
+        try {
+            // 1. Get ingredient supplies for the month
+            const ingredientSupplies = await pool.request()
+                .input('StartDate', sql.Date, startDate)
+                .input('EndDate', sql.Date, endDate)
+                .query(`
+                    SELECT 
+                        SUM(PurchaseAmount * PurchaseRate) AS TotalIngredientCost,
+                        COUNT(IngredientID) AS SupplyTransactions
+                    FROM IngredientSupply
+                    WHERE PurchaseDate BETWEEN @StartDate AND @EndDate
+                `);
+            
+            // 2. Get total sales from invoices
+            const sales = await pool.request()
+                .input('StartDate', sql.Date, startDate)
+                .input('EndDate', sql.Date, endDate)
+                .query(`
+                    SELECT 
+                        SUM(TotalAmount - DiscountApplied + 
+                            ((TotalAmount - DiscountApplied) * Tax / 100)) AS TotalSales,
+                        SUM(DiscountApplied) AS TotalDiscounts,
+                        COUNT(InvoiceID) AS TotalTransactions
+                    FROM Invoice i
+                    JOIN Orders o ON i.OrderID = o.OrderID
+                    WHERE o.OrderDate BETWEEN @StartDate AND @EndDate
+                    AND i.PaidStatus = 'Paid'
+                `);
+            
+            return {
+                // Sales Data
+                totalSales: sales.recordset[0].TotalSales || 0,
+                totalDiscounts: sales.recordset[0].TotalDiscounts || 0,
+                salesTransactions: sales.recordset[0].TotalTransactions || 0,
+                
+                // Expense Data
+                ingredientCost: ingredientSupplies.recordset[0].TotalIngredientCost || 0,
+                supplyTransactions: ingredientSupplies.recordset[0].SupplyTransactions || 0,
+                
+          
+                reportPeriod: `${year}-${month.toString().padStart(2, '0')}`,
+                startDate: startDate.toISOString().split('T')[0],
+                endDate: endDate.toISOString().split('T')[0]
+            };
+            
+        } catch (error) {
+            console.error('Database error in getMonthlyReport:', error);
+            throw error;
+        }
+    },
+     async getAllVendors() {
+        const pool = await poolPromise;
+        const result = await pool.request().query('SELECT * FROM Vendor ORDER BY VendorID DESC');
+        return result.recordset;
+    },
+
+     async addVendor(vendorData) {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('FName', sql.VarChar(255), vendorData.FName)
+            .input('LName', sql.VarChar(255), vendorData.LName)
+            .input('CNIC', sql.VarChar(15), vendorData.CNIC)
+            .input('Address', sql.VarChar(255), vendorData.Address)
+            .input('PhoneNo', sql.VarChar(11), vendorData.PhoneNo)
+            .input('Email', sql.VarChar(255), vendorData.Email)
+            .query(`
+                INSERT INTO Vendor (FName, LName, CNIC, Address, PhoneNo, Email)
+                VALUES (@FName, @LName, @CNIC, @Address, @PhoneNo, @Email);
+                SELECT SCOPE_IDENTITY() AS VendorID;
+            `);
+        return result.recordset[0];
+    },
+
+     async removeVendor(vendorId) {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('VendorID', sql.Int, vendorId)
+            .query('DELETE FROM Vendor WHERE VendorID = @VendorID');
     }
+
+
+
+
+      
 
     
 };

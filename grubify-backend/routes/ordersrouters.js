@@ -30,7 +30,17 @@ const {
     addMoneyToWallet,
     updateEmployeeRole,
     deductMoneyToWallet,
-    checkIfTableAvailable
+    checkIfTableAvailable,
+    viewActiveOrders,
+    addingredient,
+    getAllEmployees,
+    removeEmployee,
+    getOrdersByDateRange,
+    getSalesReport,
+    generateMonthlyReport,
+    getAllVendors,
+    addVendor,
+    removeVendor,
 } = require("../controller/orders.js"); 
 
 const router = express.Router();
@@ -66,5 +76,14 @@ router.post("/deductmoneytowallet", deductMoneyToWallet);
 router.put("/updateemployeerole", updateEmployeeRole);
 router.post("/updateIngredients", updateIngredients);
 router.get("/checkTableAvailable", checkIfTableAvailable); 
-
+router.get("/activeorders", viewActiveOrders);
+router.post("/addingredient", addingredient);
+router.get("/getAllEmployees", getAllEmployees);
+router.delete("/removeEmployee/:id", removeEmployee);
+router.get('/by-date-range',getOrdersByDateRange  );
+router.get('/report',getSalesReport);
+router.post('/monthly-report', generateMonthlyReport);
+router.get('/seevendor', getAllVendors);
+router.post('/addvendor', addVendor);
+router.delete('/removevendor/:vendorId', removeVendor);
 module.exports = router;

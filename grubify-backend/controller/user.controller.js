@@ -12,4 +12,13 @@ const loginUser = async (req, res) => {
     }
 };
 
-module.exports = {  loginUser }; 
+const loginAdmin = async (req, res) => {
+    try {
+        const adminData = req.body;
+        const result = await User.loginAdmin(adminData);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+module.exports = {  loginUser,loginAdmin }; 
